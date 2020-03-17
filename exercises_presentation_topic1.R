@@ -1,29 +1,31 @@
 # exercises for presentations topic 1
 
+## set up
 
 rm(list = ls())
 
 setwd("C:/R/ISLR")
 
-library(ISLR)
-library(stargazer)
+library(ISLR) # contains Auto data set
+
+data(Auto) # load data set
+
 ## a)
 
-pairs(Auto)
+pairs(Auto[, !names(Auto) == "name"]) # scatterplot between all variables , excluding name
 
-## b) 
+## b)
 
-# create auto subset without the name column
-
-cor(Auto[, names(Auto) !="name"])
-
-Auto$origin <- as.factor(Auto$origin)
+cor(Auto[, !names(Auto) == "name"])
 
 ## c)
 
+ 
+Auto$origin <- as.factor(Auto$origin) # create dummy variable
+
 model1 <- lm(mpg ~.-name, Auto)
 
-stargazer(model1, type = "text")
+summary(model1)
 
 # some are significant
 # some not 
@@ -43,3 +45,6 @@ summary(model3_selection)
 summary(lm(mpg ~. + horsepower*weight, auto_sub))
 
 summary(lm(mpg ))
+
+log(6)
+log(7)

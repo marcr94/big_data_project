@@ -1,0 +1,130 @@
+---
+title: "Big Data Methods for Economists Seminar Spring 2020  Exercises for Topic 1"
+author: Jingyan Yang and Marc Richter
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(tidy.opts=list(width.cutoff=80),tidy=TRUE)
+```
+
+## Set Up                             
+
+We first get ready to set up our environment for the following tasks.
+
+```{r}
+rm(list = ls())
+
+library(ISLR) # contains Auto data set
+library(MASS) # for stepAIC formula
+
+data(Auto) # load data set
+```
+
+## a)
+
+We create a scatterplot plotting all variables against each other, except the qualitative variable name.
+
+```{r, echo=FALSE}
+
+pairs(Auto[, !names(Auto) == "name"]) # scatterplot between all variables , excluding name
+
+```
+            
+## b)
+
+The cor() function produces a correlation matrix for us.
+
+````{r}
+
+cor(Auto[, !names(Auto) == "name"]) # correlation between all variables , excluding name
+
+````
+
+## c)
+
+We fit a first mulitlinear model, regressing mpg on all other variables in the data set, excluding the qualitative variable "name".
+
+````{r}
+
+Auto$origin <- as.factor(Auto$origin) # transform origin variable from integer to factor - this way R will automatically code a dummy variable for it in the regression formula
+
+model1 <- lm(mpg ~.-name, Auto)
+
+summary(model1)
+
+````
+
+We see that some of the predictors are correlated with the response. Displacement, weight, year and origin seem to be related to mpg. For example, a model built one year later, is on average associated with a 0.77 higher mpg, everything else held constant. Cylinders, horsepower and accleration do not seem to be correlated. But we might have first doubts... Why would origin of a car have much to do with mpg? And is horsepower really not related to mpg? 
+
+We have to be careful with our estimates, the true relationship between our predictors and the response is
+
+1) very certainly not linear
+
+2) there might also be interactions included - predictors will be dependent on each other
+
+We will now explore both of these issues.
+
+
+## d)
+
+We can include interaction effects of the different variables - let's try it out with some variables.
+
+````{r}
+
+model2 <- lm(mpg ~. -name + cylinders:displacement + cylinders*origin + horsepower*acceleration , Auto)
+
+summary(model2)
+````
+
+For this case, the cylinder-displacement and the horsepower interaction are statistically significant. 
+
+If we want to , we can include all the possible two-way effects through the following functions:
+
+````{r}
+model3 <- lm(mpg ~(. -name)^2, Auto)
+
+summary(model3)
+````
+
+However, we see that this leads to nearly all predictors being statistically insignificant - we clearly added a lot of noise here! But we defined new predictors, and could use model selection to select the variables that have predictive power.
+
+## e)
+
+We will now transform some variables. We can use the linear model to model non-linear effects - through transformation of the variables themselves! 
+
+Let's for example see what happens when we include the log of accleration and the square of horsepower. Having a look at the scatterplot we created in a) and the correlation of these variables with mpg shows that this might be a reasonable thing to do. 
+
+Note that we type -horsepower because the horsepower of polynomial 1 get's included automatically through the poly formula.
+
+````{r}
+model4 <- lm(mpg ~. -name - horsepower + log(acceleration) + poly(horsepower, 2), Auto)
+
+summary(model4)
+````
+
+The second degree polynomial of horsepower does seem to have a strong relationship, whereas the log of acceleration does not.
+Note that this again goes smoothly with what we could suspect from the scatterplot - a log correlation is not very clearly seen from the scatterplot matrix, but the polynomial relationship appears very strongly there. 
+
+## f) 
+
+Now we want to find the best model based on the the simple model of using all the variables without interaction of transformations.
+
+We use the stepAIC() function to perform one foward and one backward model selection calculating the AIC. 
+
+```` {r}
+model0 <- lm(mpg ~ 1, Auto) # define "empty" model as starting point for forward selection 
+
+model_forward <- stepAIC(model0, scope = list(lower = "model0", upper = "model1"), direction = "forward") 
+
+model_backward <- stepAIC(model1, direction = "backward")
+
+summary(model_forward)
+
+summary(model_backward)
+
+````
+
+Both models come to the same conclusion: the only variable not to include should be acceleration ! Note that there is still predictors in the model (like cylinders) which are not statistically significant in the estimation.
